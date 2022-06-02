@@ -99,11 +99,11 @@ async def flip(ctx):
 
 @bot.slash_command(name="invite",description="➕ Invite link for the bot.")
 async def invite(ctx):
-  await ctx.respond("[Add Quasars to your server!](https://discord.com/oauth2/authorize?client_id=821742438603292672&permissions=2150722624&scope=bot+applications.commands)",ephemeral  = True)
+  await ctx.respond("[Add Quasar to your server!](https://discord.com/oauth2/authorize?client_id=821742438603292672&permissions=2150722624&scope=bot+applications.commands)",ephemeral  = True)
 
 @bot.slash_command(name="github",description="👩‍💻 GitHub link for the bot.")
 async def github(ctx):
-  await ctx.respond("[Here's the link!](https://github.com/anniwth/quasars)",ephemeral  = True)
+  await ctx.respond("[Here's the link!](https://github.com/anniwth/quasar)",ephemeral  = True)
 
 @bot.slash_command(name="echo",description="🗣️ Repeats a message provided by a user.")
 async def echo(ctx, text):
