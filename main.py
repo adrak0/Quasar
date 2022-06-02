@@ -43,7 +43,6 @@ from discord.ext.commands import (BadArgument, Bot, BucketType,
 from discord.utils import get
 from PIL import Image, ImageFilter
 from requests import Request, Session
-from keep_alive import keep_alive
 load_dotenv()
 intents = discord.Intents.default()
 bot =  discord.Bot(intents = intents    
@@ -805,5 +804,4 @@ Pycord: {dpyVersion}
             inline=True
       ) 
   await ctx.respond(embed = embed)
-keep_alive()
 bot.run(os.getenv('TOKEN'))
