@@ -36,7 +36,6 @@ import base64
 from io import BytesIO 
 from math import * 
 from aiohttp import request
-from async_timeout import timeout
 from discord import Embed ,Member
 from discord.ext import commands, tasks
 from discord.ext.commands import (BadArgument, Bot, BucketType,
@@ -44,6 +43,7 @@ from discord.ext.commands import (BadArgument, Bot, BucketType,
 from discord.utils import get
 from PIL import Image, ImageFilter
 from requests import Request, Session
+from keep_alive import keep_alive
 load_dotenv()
 intents = discord.Intents.default()
 bot =  discord.Bot(intents = intents    
@@ -112,10 +112,12 @@ async def echo(ctx, text):
 
 backend_url =  os.getenv('backendurl')
 
-def get_images_from_backend(prompt):
-    r = requests.post(backend_url, json={"prompt": prompt})
+async def get_images_from_backend(prompt):
+    async with aiohttp.ClientSession() as cs:
+        async with cs.get(backend_url, json={"prompt": prompt}) as r:
+            rjson = await r.json() 
     if r.status_code == 200:
-        json = r.json()
+        json = rjson
         images = json["images"]
         images = [base64.b64decode(img) for img in images]
 
@@ -803,5 +805,5 @@ Pycord: {dpyVersion}
             inline=True
       ) 
   await ctx.respond(embed = embed)
-
+keep_alive()
 bot.run(os.getenv('TOKEN'))
