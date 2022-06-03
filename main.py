@@ -2,7 +2,7 @@ import asyncio
 import binascii
 import io
 import json
-import os
+import os, glob
 import platform
 import random
 import re
@@ -43,6 +43,7 @@ from discord.ext.commands import (BadArgument, Bot, BucketType,
 from discord.utils import get
 from PIL import Image, ImageFilter
 from requests import Request, Session
+from keep_alive import keep_alive
 load_dotenv()
 intents = discord.Intents.default()
 bot =  discord.Bot(intents = intents    
@@ -113,28 +114,27 @@ backend_url =  os.getenv('backendurl')
 
 async def get_images_from_backend(prompt):
     async with aiohttp.ClientSession() as cs:
-        async with cs.get(backend_url, json={"prompt": prompt}) as r:
-            rjson = await r.json() 
-    if r.status_code == 200:
-        json = rjson
-        images = json["images"]
-        images = [base64.b64decode(img) for img in images]
-
-        for i in range(len(images)):
-            image = images[i]
-            with open(f"image_{i}.jpg", "wb") as f:
-               f.write(image)
-        return True
-
-    else:
-        print("Error:", r.status_code)
-        return False
+        async with cs.post(backend_url, json={"prompt": prompt}) as r:       
+          if r.status== 200:
+              json = await r.json()
+              images = json["images"]
+              images = [base64.b64decode(img) for img in images]
+      
+              for i in range(len(images)):
+                  image = images[i]
+                  with open(f"image_{i}.jpg", "wb") as f:
+                     f.write(image)
+              return True
+      
+          else:
+              print("Error:", r.status)
+              return False
 
 @bot.slash_command(name="dallemini",description="📸Generates text to image using Dalle Mini.")
 async def dallemini(ctx, prompt):
   await ctx.defer()
   await ctx.respond("Please wait... ⏳", ephemeral  = True)
-  if get_images_from_backend(prompt):
+  if await get_images_from_backend(prompt):
       file = discord.File("image_0.jpg", filename="image_0.jpg")
       file1 = discord.File("image_1.jpg", filename="image_1.jpg")
       file2 = discord.File("image_2.jpg", filename="image_2.jpg")
@@ -702,16 +702,6 @@ async def invert(ctx,user: discord.Member):
   except AttributeError:
     await ctx.respond("You can use this command on servers only.", ephemeral  = True)
 
-
-@bot.slash_command(name="qrread",description="🐞 Reads a QR image URL.")
-@commands.cooldown(1, 7, BucketType.user)
-async def qrreader(ctx,url): 
-  await ctx.defer()
-  async with aiohttp.ClientSession() as cs:
-    async with cs.get(f'https://api.qrserver.com/v1/read-qr-code/?fileurl={url}') as r:
-        qrObj = await r.json() 
-        await ctx.respond(f'Decoded data: {qrObj[0]["symbol"][0]["data"]}')
-
 @bot.slash_command(name="8ball",description="🎱 Random answers to questions.")
 async def _8ball(ctx, question):
   responses = [
@@ -804,4 +794,5 @@ Pycord: {dpyVersion}
             inline=True
       ) 
   await ctx.respond(embed = embed)
+keep_alive()
 bot.run(os.getenv('TOKEN'))
