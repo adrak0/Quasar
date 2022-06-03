@@ -138,7 +138,7 @@ async def dallemini(ctx, prompt):
     list_of_files = []
     for i in range(9):
       list_of_files.append(discord.File(f"image_{i}.jpg", filename=f"image_{i}.jpg"))
-    await ctx.channel.send(f"Successfully uploaded images for `{prompt}`, requested by {ctx.author}.\nCreated using [Dalle-Mini](https://github.com/borisdayma/dalle-mini).",files=list_of_files)
+    await ctx.channel.send(f"Successfully uploaded images for `{prompt}`, requested by {ctx.message.author.mention}.\nCreated using [Dalle-Mini](https://github.com/borisdayma/dalle-mini).",files=list_of_files)
     for f in glob.glob("*.jpg"):
         os.remove(f)
   else:
