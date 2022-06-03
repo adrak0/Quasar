@@ -133,7 +133,7 @@ async def get_images_from_backend(prompt):
 @bot.slash_command(name="dallemini",description="📸Generates text to image using Dalle Mini.")
 async def dallemini(ctx, prompt):
   await ctx.defer()
-  await ctx.respond("Please wait... <a:Hour_Glass_Loading:982165078835101726>", ephemeral  = True)
+  await ctx.respond("Please wait... <a:Hour_Glass_Loading:982165078835101726>")
   if await get_images_from_backend(prompt):
     list_of_files = []
     for i in range(9):
@@ -142,7 +142,7 @@ async def dallemini(ctx, prompt):
     for f in glob.glob("*.jpg"):
         os.remove(f)
   else:
-      await ctx.respond("Something went wrong, try using the command again.", ephemeral  = True)
+      await ctx.respond("Something went wrong, try using the command again.")
 
 @bot.slash_command(name="inspire",description="🐜 Sends inspirational quotes.")
 async def inspire(ctx):
