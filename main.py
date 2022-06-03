@@ -135,25 +135,12 @@ async def dallemini(ctx, prompt):
   await ctx.defer()
   await ctx.respond("Please wait... ⏳", ephemeral  = True)
   if await get_images_from_backend(prompt):
-      file = discord.File("image_0.jpg", filename="image_0.jpg")
-      file1 = discord.File("image_1.jpg", filename="image_1.jpg")
-      file2 = discord.File("image_2.jpg", filename="image_2.jpg")
-      file3 = discord.File("image_3.jpg", filename="image_3.jpg")
-      file4 = discord.File("image_4.jpg", filename="image_4.jpg")
-      file5 = discord.File("image_5.jpg", filename="image_5.jpg")
-      file6 = discord.File("image_6.jpg", filename="image_6.jpg")
-      file7 = discord.File("image_7.jpg", filename="image_7.jpg")
-      file8 = discord.File("image_8.jpg", filename="image_8.jpg")
-      await ctx.channel.send(f"Successfully uploaded images for `{prompt}`, requested by {ctx.author}.\nCreated using [Dalle-Mini](https://github.com/borisdayma/dalle-mini).",files=[file,file1,file2,file3,file4,file5,file6,file7,file8])
-      os.remove("image_0.jpg")
-      os.remove("image_1.jpg")
-      os.remove("image_2.jpg")
-      os.remove("image_3.jpg")
-      os.remove("image_4.jpg")
-      os.remove("image_5.jpg")
-      os.remove("image_6.jpg")
-      os.remove("image_7.jpg")
-      os.remove("image_8.jpg")
+    list_of_files = []
+    for i in range(9):
+      list_of_files.append(discord.File(f"image_{i}.jpg", filename=f"image_{i}.jpg"))
+    await ctx.channel.send(f"Successfully uploaded images for `{prompt}`, requested by {ctx.author}.\nCreated using [Dalle-Mini](https://github.com/borisdayma/dalle-mini).",files=list_of_files)
+    for f in glob.glob("*.jpg"):
+        os.remove(f)
   else:
       await ctx.respond("Something went wrong, try using the command again.", ephemeral  = True)
 
