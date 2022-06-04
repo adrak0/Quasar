@@ -23,7 +23,7 @@ from dateutil import parser
 from dotenv import load_dotenv
 
 import aiohttp
-import discord
+import discord # Btw, I'm using pycord.
 import humanize
 import PIL.ImageOps
 import pyfiglet
@@ -43,11 +43,11 @@ from discord.ext.commands import (BadArgument, Bot, BucketType,
 from discord.utils import get
 from PIL import Image, ImageFilter
 from requests import Request, Session
-from keep_alive import keep_alive
+
 load_dotenv()
 intents = discord.Intents.default()
 bot =  discord.Bot(intents = intents    
-, command_prefix = "=")
+, command_prefix = "=") # This is uselss bot runs only with slash commands.
 
 @bot.event
 async def on_ready():
@@ -110,10 +110,10 @@ async def echo(ctx, text):
   await ctx.channel.send(text)
   await ctx.respond('Posted your message.',ephemeral  = True)
 
-backend_url =  os.getenv('backendurl')
+backend_url =  os.getenv('backendurl') # Thanks to Boris Dayma for letting me access to backend IP.
 
-async def get_images_from_backend(prompt):
-    async with aiohttp.ClientSession() as cs:
+async def get_images_from_backend(prompt):   
+    async with aiohttp.ClientSession() as cs:    # Using aiohttp cause requests are blocking(atleast for free hosting :| )
         async with cs.post(backend_url, json={"prompt": prompt}) as r:       
           if r.status== 200:
               json = await r.json()
@@ -781,5 +781,5 @@ Pycord: {dpyVersion}
             inline=True
       ) 
   await ctx.respond(embed = embed)
-keep_alive()
-bot.run(os.getenv('TOKEN'))
+
+bot.run(os.getenv('TOKEN')) # Greetings.
