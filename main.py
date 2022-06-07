@@ -120,15 +120,16 @@ async def get_images_from_backend(prompt):
               print("Error:", r.status)
               return False
 
-@bot.slash_command(name="dallemini",description="📸Generates text to image using Dalle Mini.")
+@bot.slash_command(name="dallemini",description="📸Generates text to image using Dalle Mini(Mega tbh).")
 async def dallemini(ctx, prompt):
   await ctx.defer()
-  await ctx.respond("Please wait... <a:Hour_Glass_Loading:982165078835101726>")
+  msg = await ctx.respond("Generating the images<a:loading:983701128942342194>\nI will ping you when the images are generated.")
   if await get_images_from_backend(prompt):
     list_of_files = []
     for i in range(9):
       list_of_files.append(discord.File(f"image_{i}.jpg", filename=f"image_{i}.jpg"))
-    await ctx.channel.send(f"Successfully uploaded images for `{prompt}`, requested by {ctx.author.mention}.\nCreated using [Dalle-Mini](https://github.com/borisdayma/dalle-mini).",files=list_of_files)
+    await ctx.channel.send(f"__{prompt}__ : {ctx.author.mention}",files=list_of_files)
+    await msg.edit(content="Successfully generated the images.")
     for f in glob.glob("*.jpg"):
         os.remove(f)
   else:
