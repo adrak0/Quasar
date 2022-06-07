@@ -13,10 +13,8 @@
   - /weather [Forecast for a specific location.] 
   - /stats [Stats and info about the bot.] 
   - /qrcode [Generates a QR code for a specific text.]
-  - /qrread [Reads a QR image url]
   - /privacy [Info about privacy policy]
   - /deltav [Calculates DeltaV for a rocket.]
-  - /sma [Calculate semi-major axis]
   - /[what3words](https://what3words.com/) [ Converts the 3 words to coordinates.]
 
   🎮 Fun
