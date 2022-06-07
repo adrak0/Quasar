@@ -1,30 +1,22 @@
-import asyncio
 import binascii
 import io
 import json
 import os, glob
-import platform
 import random
-import re
 import time
-import difflib
-import urllib
 import what3words as w3w
-from asyncio import TimeoutError, sleep
+from asyncio import sleep
 from datetime import datetime
-from itertools import cycle
 from platform import python_version
 from random import choice, randint
 from time import time
 from typing import List, Optional, Union, Dict 
-from urllib.parse import quote_plus
 from discord.utils import get
 from dateutil import parser
 from dotenv import load_dotenv
 
 import aiohttp
-import discord # Btw, I'm using pycord.
-import humanize
+import discord #Btw I'm using pycord
 import PIL.ImageOps
 import pyfiglet
 import qrcode
@@ -40,22 +32,20 @@ from discord import Embed ,Member
 from discord.ext import commands, tasks
 from discord.ext.commands import (BadArgument, Bot, BucketType,
                                   clean_content, command, cooldown)
-from discord.utils import get
 from PIL import Image, ImageFilter
-from requests import Request, Session
+from requests import Request
 
 load_dotenv()
 intents = discord.Intents.default()
 bot =  discord.Bot(intents = intents    
-, command_prefix = "=") # This is uselss bot runs only with slash commands.
+, command_prefix = "=") #This is useless, the bot only runs with slash commands.
 
 @bot.event
 async def on_ready():
   await bot.change_presence(activity=discord.Game(name="/help"),status=discord.Status.idle) 
   print("Bot is ready!")
 
-
-@bot.slash_command(name="chgsts",description="🦎 Changes status of the bot remotely.")
+@bot.slash_command(name="chgsts",description="🦎 Changes status of the bot remotely(Owner only command).")
 async def change_presence(ctx, text):
     if ctx.author.id == 514119980518735903:
         await bot.change_presence(activity=discord.Game(name=text),status=discord.Status.idle) 
@@ -110,10 +100,10 @@ async def echo(ctx, text):
   await ctx.channel.send(text)
   await ctx.respond('Posted your message.',ephemeral  = True)
 
-backend_url =  os.getenv('backendurl') # Thanks to Boris Dayma for letting me access to backend IP.
+backend_url =  os.getenv('backendurl') # Thanks to BorisDayma for letting me access backend <3
 
-async def get_images_from_backend(prompt):   
-    async with aiohttp.ClientSession() as cs:    # Using aiohttp cause requests are blocking(atleast for free hosting :| )
+async def get_images_from_backend(prompt):
+    async with aiohttp.ClientSession() as cs:
         async with cs.post(backend_url, json={"prompt": prompt}) as r:       
           if r.status== 200:
               json = await r.json()
@@ -448,26 +438,6 @@ async def apod(ctx):
           embed.set_footer(text=f"The API refreshes once every 24 hours.")
           await ctx.respond(embed=embed)
 
-@bot.slash_command(name="sma",description="👩‍🔬 Calculate Semi-Major Axis.")
-async def sma(ctx, aphelion : int, perihelion :int):
-  if aphelion > perihelion:
-    embed = discord.Embed(title="🛰️ Semi-Major Axis.", description = "Semi-Major Axis is just the average orbit height, is defined as one-half the sum of the perihelion and the aphelion.")
-    calc = (aphelion + perihelion)/2
-    e = math.sqrt(aphelion**2 - perihelion**2)/aphelion
-    embed.add_field(name = "Results", value = f"{int(calc)} m")
-    embed.add_field(name = "Elliptical Eccentricity", value = f"{e}",inline=False)
-    embed.set_image(url="https://i.stack.imgur.com/R3DI2.jpg")
-    await ctx.respond(embed = embed)
-  elif perihelion >= aphelion:
-    embed = discord.Embed(title="🛰️ Semi-Major Axis.", description = "Semi-Major Axis is just the average orbit height, is defined as one-half the sum of the perihelion and the aphelion.")
-    calc = (aphelion + perihelion)/2
-    e = math.sqrt(perihelion**2 - aphelion**2)/perihelion
-    embed.add_field(name = "Results", value = f"{int(calc)} m")
-    embed.add_field(name = "Elliptical Eccentricity", value = f"{e}",inline=False)
-    embed.set_image(url="https://i.stack.imgur.com/R3DI2.jpg")
-    await ctx.respond(embed = embed)
-
-
 @bot.slash_command(name="deltav",description="👨‍🔬 Calculate DeltaV.")
 async def deltav(ctx, engineimpulse : int, wetmass :int,drymass :int):
   embed = discord.Embed(title="🚀 DeltaV (Ideal Rocket Equation)", description = "DeltaV is the maximum change of velocity of the vehicle (with no external forces acting), is a measure of the impulse per unit of spacecraft mass that is needed to perform a maneuver such as launching from or landing on a planet or moon, or an in-space orbital maneuver. \nㅤ\nEquation: [ΔV == Isp * 9.82 * log(WetMass/DryMass)](https://en.wikipedia.org/wiki/Tsiolkovsky_rocket_equation)")
@@ -781,5 +751,8 @@ Pycord: {dpyVersion}
             inline=True
       ) 
   await ctx.respond(embed = embed)
-
-bot.run(os.getenv('TOKEN')) # Greetings.
+  
+try: # Cons of free hosting 😔
+  bot.run(os.getenv('TOKEN')) 
+except:
+  os.system("kill 1")
