@@ -26,7 +26,6 @@
   - /ascii [Convert texts into an isometric font.]
 
   🖼 Imager
-  - /color [Colorizes grayscaled image urls.]
   - /gray [Converts an profile picture of an user into black/white image.]
   - /blur [Blurs profile picture of an user.] 
   - /invert [Inverts the colors for profile picture of an user.] 
