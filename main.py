@@ -119,7 +119,7 @@ async def get_images_from_backend(prompt):
           else:
               print("Error:", r.status)
               return False
-
+	
 @bot.slash_command(name="dallemini",description="📸Generates text to image using Dalle Mini(Mega tbh).")
 async def dallemini(ctx, prompt):
   await ctx.defer()
@@ -133,7 +133,7 @@ async def dallemini(ctx, prompt):
     for f in glob.glob("*.jpg"):
         os.remove(f)
   else:
-      await ctx.respond("Something went wrong, try using the command again.")
+      await msg.edit(content=f"Servers are down, try again later.")
 
 @bot.slash_command(name="inspire",description="🐜 Sends inspirational quotes.")
 async def inspire(ctx):
