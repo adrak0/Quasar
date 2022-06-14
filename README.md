@@ -1,5 +1,5 @@
 # **Quasar, A space-themed Discord Bot!**
-[<img alt="BotInfo" width="300px" src="https://media.discordapp.net/attachments/829169410580807722/981915195653881886/unknown.png" />](https://discord.com/oauth2/authorize?client_id=821742438603292672&permissions=2150722624&scope=bot+applications.commands)
+[<img alt="BotInfo" width="300px" src="https://cdn.discordapp.com/attachments/938832324118867969/986176390569263114/unknown.png" />](https://discord.com/oauth2/authorize?client_id=821742438603292672&permissions=2150722624&scope=bot+applications.commands)
 
 - Only works with slash commands.
 - [Add Quasar to your discord server!](https://discord.com/oauth2/authorize?client_id=821742438603292672&permissions=2150722624&scope=bot+applications.commands) 
