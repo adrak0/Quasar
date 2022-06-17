@@ -416,6 +416,20 @@ async def texttohex(ctx, text):
         except Exception:
             await ctx.respond(f"There was a problem, and I could not send the output. It may be too large or malformed",ephemeral =True)
 
+@bot.slash_command(name="epic",description="🌎 DSCVR's view of planet earth.")
+async def epic(ctx):
+  nasaapi = os.environ['nasa_api']
+  async with aiohttp.ClientSession() as cs:
+    async with cs.get(f'https://api.nasa.gov/EPIC/api/natural?api_key={nasaapi}') as r:
+      json_data = await r.json()
+      date = json_data[0]["date"].split(None, 1)[0].replace('-', '/')
+      embed = discord.Embed(
+          title = "EPIC (Earth Polychromatic Imaging Camera)",
+          description = "Uniquely positioned at the Earth-Sun Lagrange point, EPIC provides full disc imagery of the Earth and captures unique perspectives of certain astronomical events such as lunar transits using a 2048x2048 pixel CCD (Charge Coupled Device) detector coupled to a 30-cm aperture Cassegrain telescope.")
+      embed.add_field(name='Date', value=json_data[0]['date'], inline=False)
+      embed.set_image(url=f'https://epic.gsfc.nasa.gov/archive/natural/{date}/png/{json_data[0]["image"]}.png')
+      await ctx.respond(embed=embed)
+
 @bot.slash_command(name="apod",description="🌌 Astronomy Picture of the Day.")
 async def apod(ctx):
   nasaapi = os.environ['nasa_api']
