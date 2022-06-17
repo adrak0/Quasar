@@ -34,7 +34,8 @@
   🌌 Cosmos
   - /apod [Astronomy picture from an API by Nasa.]
   - /astronauts [People who are in space.]
-  - /curiosity [Info about curiosity rover from Mars.] 
+  - /curiosity [Info about curiosity rover from Mars.]
+  - /epic [🌎 DSCVR's view of planet earth.]
   - /rover [Images taken by curiosity rover on Mars.] 
   - /iss [Coordinates for International Space Station.]
   - /launches [Info about upcoming rocket launches.] 
