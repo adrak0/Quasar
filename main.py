@@ -112,7 +112,7 @@ async def get_images_from_backend(prompt):
       
               for i in range(len(images)):
                   image = images[i]
-                  with open(f"image_{i}.jpg", "wb") as f:
+                  with (f"image_{i}.jpg", "wb") as f:
                      f.write(image)
               return True
       
@@ -120,8 +120,8 @@ async def get_images_from_backend(prompt):
               print("Error:", r.status)
               return False
 	
-@bot.slash_command(name="dallemini",description="📸Generates text to image using Dalle Mini(Mega tbh).")
-async def dallemini(ctx, prompt):
+@bot.slash_command(name="craiyon",description="📸Generates text to image(Previously called Dalle-Mini).")
+async def craiyon(ctx, prompt):
   await ctx.defer()
   msg = await ctx.respond("Generating the images<a:loading:983701128942342194>\n  \n*I will ping you when the images are ready!*")
   if await get_images_from_backend(prompt):
