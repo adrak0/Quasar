@@ -29,7 +29,7 @@
   - /gray [Converts an profile picture of an user into black/white image.]
   - /blur [Blurs profile picture of an user.] 
   - /invert [Inverts the colors for profile picture of an user.] 
-  - /craiyon[Uses dalle mega to convert texts to images(Previously called Dalle-Mini).]
+  - /craiyon[Converts texts to images(Previously called Dalle-Mini).]
   
   🌌 Cosmos
   - /apod [Astronomy picture from an API by Nasa.]
