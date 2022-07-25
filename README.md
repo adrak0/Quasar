@@ -52,3 +52,10 @@
   - /mock [Make texts weird.]
   
   </details>
+
+# **Privacy Policy**   
+  - The app does not collect and store any type of user data.
+  
+# **Terms of Service**   
+  - To use Quasar you must follow Discord TOS as it is hosted on Discord's platform.
+  - You must be at minimum 13 and the above the age of what your country deems legal to be on the internet and have data being collected/stored.
