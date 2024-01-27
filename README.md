@@ -2,7 +2,7 @@
 
 - Only works with slash commands.
 - [Add Quasar to your discord server!](https://discord.com/api/oauth2/authorize?client_id=1085413206186541076&permissions=2147765248&scope=bot+applications.commands)
-- The v2021 was deleted, this is a new version :(
+- The v2021 was deleted with my old discord account :(, this is a new version but usually inactive cause free hosting
   <div>
     <br>
     
