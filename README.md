@@ -1,4 +1,6 @@
 # **Quasar, A space-themed Discord Bot!**
+<img src="https://discord.c99.nl/widget/theme-4/1085413206186541076.png" alt="Bot's live Status" width="300"/>
+
 
 - Only works with slash commands.
 - [Add Quasar to your discord server!](https://discord.com/api/oauth2/authorize?client_id=1085413206186541076&permissions=2147765248&scope=bot+applications.commands)
