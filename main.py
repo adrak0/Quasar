@@ -82,17 +82,23 @@ async def privacy(ctx):
 
 @bot.slash_command(name="avatar", description="📷 Fetches User Avatar.")
 async def avatar(ctx, user: discord.Member = None):
-    if user == None:
+    if user is None:
         author = ctx.author
-        pfp = author.avatar.url
-        embed = discord.Embed(title="Your avatar")
-        embed.set_image(url=pfp)
-        await ctx.respond(embed=embed)
+        if author.avatar:
+            pfp = author.avatar.url
+            embed = discord.Embed(title="Your avatar")
+            embed.set_image(url=pfp)
+            await ctx.respond(embed=embed)
+        else:
+            await ctx.respond("You don't have an avatar.")
     else:
-        userAvatarUrl = user.avatar.url
-        embed = discord.Embed(title=f"{user}'s avatar")
-        embed.set_image(url=userAvatarUrl)
-        await ctx.respond(embed=embed)
+        if user.avatar:
+            userAvatarUrl = user.avatar.url
+            embed = discord.Embed(title=f"{user}'s avatar")
+            embed.set_image(url=userAvatarUrl)
+            await ctx.respond(embed=embed)
+        else:
+            await ctx.respond(f"{user} doesn't have an avatar.")
 
 
 @bot.slash_command(name="flip", description="💸 Flips a coin randomly.")
@@ -753,48 +759,6 @@ async def drunkify(ctx, text):
             await ctx.respond(
                 f"There was a problem, and I could not send the output. It may be too large or malformed",
                 ephemeral=True)
-
-@bot.slash_command(name="quake3", description="🔫 Legendary cinematic from 1999")
-@commands.cooldown(1, 7, BucketType.user)
-async def quake3(ctx):
-    file_path = "vids/quake3.mp4"
-    video = discord.File(file_path)
-    await ctx.send(file=video)
-
-@bot.slash_command(name="ut99", description="🔫 Legendary cinematic from 1999")
-@commands.cooldown(1, 7, BucketType.user)
-async def ut99(ctx):
-    file_path = "vids/unrealtournament.mp4"
-    video = discord.File(file_path)
-    await ctx.send(file=video)
-
-@bot.slash_command(name="prototype", description="🔫 Legendary cinematic from 2009")
-@commands.cooldown(1, 7, BucketType.user)
-async def prototype(ctx):
-    file_path = "vids/prototype.mp4"
-    video = discord.File(file_path)
-    await ctx.send(file=video)
-
-@bot.slash_command(name="starship", description="🚀 First integrated starship launch D:")
-@commands.cooldown(1, 7, BucketType.user)
-async def starship(ctx):
-    file_path = "vids/starship.mp4"
-    video = discord.File(file_path)
-    await ctx.send(file=video)
-
-@bot.slash_command(name="reddead2", description="🔫 Legendary cinematic from 2018")
-@commands.cooldown(1, 7, BucketType.user)
-async def readdead(ctx):
-    file_path = "vids/reddead.mp4"
-    video = discord.File(file_path)
-    await ctx.send(file=video)
-
-@bot.slash_command(name="gta6", description="🔫 Legendary cinematic from 2023")
-@commands.cooldown(1, 7, BucketType.user)
-async def readdead(ctx):
-    file_path = "vids/gtavi.mp4"
-    video = discord.File(file_path)
-    await ctx.send(file=video)
 
 @bot.slash_command(name="qrcode",
                    description="🐉 Generates a QR for a specific text.")
