@@ -1,10 +1,9 @@
-# **Quasar, A space-themed Discord Bot!**
+# **Quasar, A space-themed Discord app!**
 <img src="https://discord.c99.nl/widget/theme-4/1085413206186541076.png" alt="Bot's live Status" width="300"/>
 
 
-- Only works with slash commands.
+- App with utility, fun, image, cosmic, and conversion commands. It was verified with 400+ server deployments. Engaging learning project, v2021 was lost due to my old account deletion.
 - [Add Quasar to your discord server!](https://discord.com/api/oauth2/authorize?client_id=1085413206186541076&permissions=2147765248&scope=bot+applications.commands)
-- The v2021 was deleted with my old discord account :(, this is a new version but usually inactive cause free hosting
   <div>
     <br>
     
