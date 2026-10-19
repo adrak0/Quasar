@@ -19,13 +19,29 @@ from PIL import Image, ImageFilter, ImageOps
 
 load_dotenv()
 
-TOKEN = os.environ["TOKEN"]
-OPENWEATHER_API_KEY = os.environ["OPENWEATHER_API_KEY"]
-NASA_API_KEY = os.getenv("NASA_API_KEY", "DEMO_KEY")
-OWNER_IDS = {int(i) for i in os.getenv("OWNER_IDS", "").split(",") if i.strip()}
+STAR_CHANNEL_IDS = {1164082942109290676, 1172907782765297747, 1172431577184206899}
+STAR_EMOJI = "⭐"
 
-LAUNCH_API = "https://ll.thespacedevs.com/2.2.0/launch/upcoming/"
+STREAM_NAME = "a song ❄️🔥"
+STREAM_URL = "https://www.youtube.com/watch?v=2Q9MqL83FeE"
+
+APOD_URL = "https://api.nasa.gov/planetary/apod"
 APOD_PAGE = "https://apod.nasa.gov/apod/astropix.html"
+ASTROS_URL = "http://api.open-notify.org/astros.json"
+CURIOSITY_URL = "https://api.maas2.apollorion.com/"
+EPIC_URL = "https://api.nasa.gov/EPIC/api/natural"
+EPIC_ARCHIVE = "https://epic.gsfc.nasa.gov/archive/natural"
+ISS_URL = "http://api.open-notify.org/iss-now.json"
+LAUNCH_URL = "https://ll.thespacedevs.com/2.2.0/launch/upcoming/"
+MARS_PHOTOS_URL = "https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/photos"
+QUOTE_URL = "https://zenquotes.io/api/random"
+WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather"
+
+DELTAV_GIF = "https://c.tenor.com/YKLoTukF75UAAAAC/spacex-falcon9.gif"
+FLIP_EMOJI = "<a:flipcoin:915827162311966740>"
+ISS_IMAGE = "https://spacelaunchnow-prod-east.nyc3.digitaloceanspaces.com/media/spacestation_images/international2520space2520station_image_20190220215716.jpeg"
+PRIVACY_URL = "https://github.com/anniwth/Quasar#privacy-policy"
+
 MAX_MESSAGE = 2000
 
 MORSE_CODE = {
@@ -52,25 +68,36 @@ EIGHT_BALL = [
 
 class Quasar(discord.Bot):
     def __init__(self):
-        super().__init__(intents=discord.Intents.default())
+        super().__init__(
+            intents=discord.Intents.default(),
+            default_command_integration_types={
+                discord.IntegrationType.guild_install,
+                discord.IntegrationType.user_install,
+            },
+        )
         self.launch_time = datetime.now(timezone.utc)
         self.session = None
 
     async def get_session(self):
         if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15))
+            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=20))
         return self.session
 
-    async def fetch_json(self, url, **params):
+    async def fetch_json(self, url, params=None, check=True):
         session = await self.get_session()
         async with session.get(url, params=params) as response:
+            if check:
+                response.raise_for_status()
             return await response.json(content_type=None)
 
-    async def fetch_bytes(self, url):
+    async def fetch_bytes(self, url, retries=1):
         session = await self.get_session()
-        async with session.get(url) as response:
-            response.raise_for_status()
-            return await response.read()
+        for attempt in range(1, retries + 1):
+            async with session.get(url) as response:
+                if response.status == 200 or attempt == retries:
+                    response.raise_for_status()
+                    return await response.read()
+            await asyncio.sleep(2)
 
     async def close(self):
         if self.session and not self.session.closed:
@@ -82,7 +109,15 @@ bot = Quasar()
 
 
 def owner_only():
-    return commands.check(lambda ctx: ctx.author.id in OWNER_IDS)
+    return commands.check(lambda ctx: ctx.author.id == OWNER_ID)
+
+
+def dig(data, *keys, default=None):
+    for key in keys:
+        if not isinstance(data, dict):
+            return default
+        data = data.get(key)
+    return default if data is None or data == "" else data
 
 
 def relative_time(iso_string):
@@ -107,11 +142,15 @@ def image_file(image, filename):
     return discord.File(buffer, filename=filename)
 
 
-async def respond_text(ctx, content, lang=""):
-    safe = content.replace("```", "`\u200b``")
-    block = f"```{lang}\n{safe}\n```"
-    if len(block) <= MAX_MESSAGE:
-        await ctx.respond(block)
+async def respond_text(ctx, content, lang="", code=True):
+    if code:
+        safe = content.replace("```", "`\u200b``")
+        message = f"```{lang}\n{safe}\n```"
+    else:
+        message = content
+
+    if len(message) <= MAX_MESSAGE:
+        await ctx.respond(message, allowed_mentions=discord.AllowedMentions.none())
     else:
         file = discord.File(BytesIO(content.encode()), filename="output.txt")
         await ctx.respond("The output was too long, so here it is as a file.", file=file)
@@ -129,29 +168,56 @@ async def send_avatar_edit(ctx, user, transform, title):
 
 @bot.event
 async def on_ready():
-    await bot.change_presence(
-        activity=discord.Streaming(name="a song ❄️🔥", url="https://www.youtube.com/watch?v=OgvLej8ln2w")
-    )
-    print(f"Logged in as {bot.user}")
+    await bot.change_presence(activity=discord.Streaming(name=STREAM_NAME, url=STREAM_URL))
+    print(f"Bot is ready! Logged in as {bot.user}")
+    print(f"Watching channels: {', '.join(map(str, STAR_CHANNEL_IDS))}")
+
+
+@bot.event
+async def on_message(message):
+    if message.author == bot.user or message.channel.id not in STAR_CHANNEL_IDS:
+        return
+    try:
+        await message.add_reaction(STAR_EMOJI)
+    except discord.HTTPException as e:
+        print(f"Failed to add reaction in channel {message.channel.id}: {e}")
 
 
 @bot.event
 async def on_application_command_error(ctx, error):
+    error = getattr(error, "original", error)
     if isinstance(error, commands.CommandOnCooldown):
         message = f"You're on cooldown. Try again in {error.retry_after:.1f}s."
     elif isinstance(error, discord.CheckFailure):
-        message = "Only the owner of this bot can run this command."
+        message = "You are not authorized to use this command."
+    elif isinstance(error, aiohttp.ClientResponseError):
+        message = f"The API returned an error ({error.status}). Please try again later."
+    elif isinstance(error, (aiohttp.ClientError, asyncio.TimeoutError)):
+        message = "I'm having trouble reaching that API right now. Please try again later."
     else:
         message = "Something went wrong while running that command."
         traceback.print_exception(type(error), error, error.__traceback__)
-    await ctx.respond(message, ephemeral=True)
+    try:
+        await ctx.respond(message, ephemeral=True)
+    except discord.HTTPException:
+        pass
 
 
-@bot.slash_command(name="chgsts", description="🦎 Changes status of the bot remotely (owner only).")
+@bot.slash_command(name="deletedm", description="🗑️ Deletes a specific message in the bot's DM by its ID.")
 @owner_only()
-async def change_presence(ctx, text: str):
-    await bot.change_presence(activity=discord.Game(name=text), status=discord.Status.idle)
-    await ctx.respond("Presence changed.", ephemeral=True)
+async def deletedm(ctx, message_id: str):
+    try:
+        channel = await ctx.author.create_dm()
+        message = await channel.fetch_message(int(message_id))
+        await message.delete()
+    except ValueError:
+        await ctx.respond("Invalid message ID format. Please provide a valid numeric ID.", ephemeral=True)
+    except discord.NotFound:
+        await ctx.respond("Message not found. Ensure the ID is correct and it is located in the DM.", ephemeral=True)
+    except discord.Forbidden:
+        await ctx.respond("I can only delete my own messages in DMs.", ephemeral=True)
+    else:
+        await ctx.respond(f"Successfully deleted message `{message_id}` from DMs.", ephemeral=True)
 
 
 @bot.slash_command(name="echo", description="🗣️ Repeats a message provided by a user.")
@@ -165,6 +231,13 @@ async def echo(ctx, text: str, message_id: str = None):
     await ctx.respond("Posted your message.", ephemeral=True)
 
 
+@bot.slash_command(name="embed", description="Just for embed.")
+@owner_only()
+async def send_embed(ctx, msg: str, link: str):
+    await ctx.channel.send(embed=discord.Embed(description=f"[{msg}]({link})"))
+    await ctx.respond("Posted your embed.", ephemeral=True)
+
+
 @bot.slash_command(name="servers", description="📃 Name list of all the servers the bot is in.")
 @owner_only()
 async def servers(ctx):
@@ -173,48 +246,26 @@ async def servers(ctx):
     await ctx.respond("The file has been sent to your DMs.", ephemeral=True)
 
 
-@bot.slash_command(name="embed", description="Just for embed.")
-@owner_only()
-async def embed(ctx, msg: str, link: str):
-    await ctx.channel.send(embed=discord.Embed(description=f"[{msg}]({link})"))
-    await ctx.respond("Posted your embed.", ephemeral=True)
+@bot.slash_command(name="avatar", description="📷 Fetches User Avatar.")
+async def avatar(ctx, user: discord.Member = None):
+    target = user or ctx.author
+    embed = discord.Embed(title=f"{target}'s avatar" if user else "Your avatar")
+    embed.set_image(url=target.display_avatar.url)
+    await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="help", description="📰 Help menu.")
-async def help(ctx):
-    embed = discord.Embed(
-        description="Thank you for using this command as a slash command.\nㅤ\nGo ahead and hit `/` to discover all my commands!"
-    )
-    await ctx.respond(embed=embed, ephemeral=True)
+@bot.slash_command(name="ping", description="🏓 It tells the latency speed.")
+async def ping(ctx):
+    await ctx.respond(f"{round(bot.latency * 1000)} ms")
 
 
 @bot.slash_command(name="privacy", description="🔏 Info about privacy policy.")
 async def privacy(ctx):
     embed = discord.Embed(
         title="🔏 Privacy Policy",
-        description="[We don't collect/store any user or guild data.](https://github.com/anniwth/Quasar#privacy-policy)",
+        description=f"[I don't collect/store any user or guild data.]({PRIVACY_URL})",
     )
     await ctx.respond(embed=embed, ephemeral=True)
-
-
-@bot.slash_command(name="invite", description="➕ Invite link for the bot.")
-async def invite(ctx):
-    url = discord.utils.oauth_url(
-        bot.user.id,
-        permissions=discord.Permissions(2147765248),
-        scopes=("bot", "applications.commands"),
-    )
-    await ctx.respond(f"[Add Quasar to your server!]({url})", ephemeral=True)
-
-
-@bot.slash_command(name="github", description="👩‍💻 GitHub link for the bot.")
-async def github(ctx):
-    await ctx.respond("[Here's the link!](https://github.com/anniwth/quasar)", ephemeral=True)
-
-
-@bot.slash_command(name="ping", description="🏓 It tells the latency speed.")
-async def ping(ctx):
-    await ctx.respond(f"{round(bot.latency * 1000)} ms")
 
 
 @bot.slash_command(name="stats", description="📊 Stats and info about the bot.")
@@ -238,152 +289,13 @@ async def stats(ctx):
     await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="avatar", description="📷 Fetches User Avatar.")
-async def avatar(ctx, user: discord.Member = None):
-    title = f"{user}'s avatar" if user else "Your avatar"
-    user = user or ctx.author
-    embed = discord.Embed(title=title)
-    embed.set_image(url=user.display_avatar.url)
-    await ctx.respond(embed=embed)
-
-
-@bot.slash_command(name="gray", description="🖼️ Converts a user avatar into grayscale.")
-@commands.cooldown(1, 6, BucketType.user)
-async def grayscale(ctx, user: discord.Member = None):
-    await send_avatar_edit(ctx, user, lambda img: img.convert("L"), "{name}'s avatar has been converted to grayscale.")
-
-
-@bot.slash_command(name="blur", description="🖼️ Blurs a user avatar.")
-@commands.cooldown(1, 6, BucketType.user)
-async def blur(ctx, user: discord.Member = None):
-    await send_avatar_edit(
-        ctx, user, lambda img: img.convert("RGBA").filter(ImageFilter.GaussianBlur(7)), "{name}'s avatar has been blurred."
-    )
-
-
-@bot.slash_command(name="invert", description="🖼️ Inverts the colors for a user avatar.")
-@commands.cooldown(1, 6, BucketType.user)
-async def invert(ctx, user: discord.Member = None):
-    await send_avatar_edit(ctx, user, lambda img: ImageOps.invert(img.convert("RGB")), "{name}'s avatar has been inverted.")
-
-
-@bot.slash_command(name="flip", description="💸 Flips a coin randomly.")
-async def flip(ctx):
-    await ctx.respond(embed=discord.Embed(title="Flipping a coin... <a:flipcoin:915827162311966740>"))
-    await asyncio.sleep(3)
-    await ctx.edit(embed=discord.Embed(title=random.choice(["*Heads*", "*Tails*"])))
-
-
-@bot.slash_command(name="8ball", description="🎱 Random answers to questions.")
-async def eight_ball(ctx, question: str):
-    await ctx.respond(f"`Question: {question}\nAnswer: {random.choice(EIGHT_BALL)}`")
-
-
-@bot.slash_command(name="react", description="React with an emoji to a specific message.")
-async def react(ctx, message_id: str, emoji: str):
-    try:
-        message = await ctx.channel.fetch_message(int(message_id))
-        await message.add_reaction(emoji)
-    except (ValueError, discord.HTTPException):
-        await ctx.respond("Couldn't add that reaction. Check the message ID and emoji.", ephemeral=True)
-        return
-    await ctx.respond("Your reaction has been added.", ephemeral=True)
-
-
-@bot.slash_command(name="inspire", description="🐜 Sends inspirational quotes.")
-async def inspire(ctx):
-    data = await bot.fetch_json("https://zenquotes.io/api/random")
-    await ctx.respond(f"```{data[0]['q']}\n - {data[0]['a']}```")
-
-
-@bot.slash_command(name="ascii", description="🧬 Convert texts into isometric font.")
-async def ascii_art(ctx, text: str):
-    await respond_text(ctx, pyfiglet.figlet_format(text))
-
-
-@bot.slash_command(name="reverse", description="◀️ Reverses the text form.")
-async def reverse(ctx, text: str):
-    await ctx.respond(f"🔁 {text[::-1]}", allowed_mentions=discord.AllowedMentions.none())
-
-
-@bot.slash_command(name="mock", description="😵‍💫 Makes texts look weird.")
-async def mock(ctx, text: str):
-    mocked = "".join(random.choice((str.upper, str.lower))(char) for char in text)
-    await ctx.respond(discord.utils.escape_markdown(mocked)[:MAX_MESSAGE], allowed_mentions=discord.AllowedMentions.none())
-
-
-@bot.slash_command(name="qrcode", description="🐉 Generates a QR for a specific text.")
-@commands.cooldown(1, 5, BucketType.user)
-async def qr(ctx, text: str):
-    embed = discord.Embed()
-    embed.set_image(url="attachment://QR.png")
-    embed.set_footer(text=f"Requested by {ctx.author}")
-    await ctx.channel.send(file=image_file(qrcode.make(text), "QR.png"), embed=embed, silent=True)
-    await ctx.respond("Posted your QR code.", ephemeral=True)
-
-
-@bot.slash_command(name="morse", description="🧮 Converts the text into Morse code.")
-async def morse(ctx, text: str):
-    await respond_text(ctx, text_to_morse(text), "yaml")
-
-
-@bot.slash_command(name="unmorse", description="🧮 Converts a morse code into text.")
-async def unmorse(ctx, content: str):
-    decoded = morse_to_text(content)
-    if not decoded:
-        await ctx.respond("There were no valid morse chars in the passed content.", ephemeral=True)
-        return
-    await respond_text(ctx, decoded)
-
-
-@bot.slash_command(name="morsetable", description="📊 Look-up for the morse code table.")
-async def morsetable(ctx, num_per_row: int = 5):
-    per_row = max(1, min(num_per_row, 8))
-    entries = [f"{char} : {code}" for char, code in sorted(MORSE_CODE.items()) if char.isalnum()]
-    width = max(map(len, entries))
-    rows = ["  ".join(entry.ljust(width) for entry in entries[i:i + per_row]) for i in range(0, len(entries), per_row)]
-    await ctx.respond("__**Morse Code Lookup Table:**__\n```\n" + "\n".join(rows) + "\n```")
-
-
-@bot.slash_command(name="texttohex", description="🧮 Convert texts into hexadecimal.")
-async def texttohex(ctx, text: str):
-    await respond_text(ctx, " ".join(f"{ord(char):02x}" for char in text), "fix")
-
-
-@bot.slash_command(name="hextotext", description="🧮 Converts hexadecimal to a text.")
-async def hextotext(ctx, text: str):
-    try:
-        decoded = bytes.fromhex(text).decode()
-    except ValueError as e:
-        await ctx.respond(f"Error: `{e}`.\nThis probably means the text is malformed.", ephemeral=True)
-        return
-    await respond_text(ctx, decoded)
-
-
-@bot.slash_command(name="texttobinary", description="🧮 Converts text into binary numbers.")
-async def texttobinary(ctx, text: str):
-    await respond_text(ctx, " ".join(f"{ord(char):08b}" for char in text), "fix")
-
-
-@bot.slash_command(name="binarytotext", description="🧮 Converts binary numbers into a text.")
-async def binarytotext(ctx, text: str):
-    try:
-        decoded = "".join(chr(int(chunk, 2)) for chunk in text.split())
-    except (ValueError, OverflowError) as e:
-        await ctx.respond(f"Error: `{e}`.\nThis probably means the text is malformed.", ephemeral=True)
-        return
-    await respond_text(ctx, decoded)
-
-
 @bot.slash_command(name="weather", description="☁️ Forecast for a specific location.")
 @commands.cooldown(1, 2, BucketType.user)
 async def weather(ctx, location: str):
-    await ctx.defer(ephemeral=True)
     data = await bot.fetch_json(
-        "https://api.openweathermap.org/data/2.5/weather",
-        q=location,
-        appid=OPENWEATHER_API_KEY,
-        units="metric",
+        WEATHER_URL,
+        {"q": location, "appid": OPENWEATHER_API_KEY, "units": "metric"},
+        check=False,
     )
     if str(data.get("cod")) != "200":
         await ctx.respond(f"`{data.get('message', 'Unknown error')}`", ephemeral=True)
@@ -401,15 +313,142 @@ async def weather(ctx, location: str):
     embed.add_field(name="Pressure", value=f"{main['pressure']} hPa", inline=False)
     embed.add_field(name="Sunrise", value=f"<t:{data['sys']['sunrise']}:R>")
     embed.add_field(name="Sunset", value=f"<t:{data['sys']['sunset']}:R>")
-    embed.set_footer(text=f"Requested by {ctx.author}")
-    await ctx.channel.send(embed=embed, silent=True)
-    await ctx.respond("Posted the weather.", ephemeral=True)
+    await ctx.respond(embed=embed)
+
+
+@bot.slash_command(name="8ball", description="🎱 Random answers to questions.")
+async def eight_ball(ctx, question: str):
+    await ctx.respond(
+        f"`Question: {question}\nAnswer: {random.choice(EIGHT_BALL)}`",
+        allowed_mentions=discord.AllowedMentions.none(),
+    )
+
+
+@bot.slash_command(name="flip", description="💸 Flips a coin randomly.")
+async def flip(ctx):
+    await ctx.respond(embed=discord.Embed(title=f"Flipping a coin... {FLIP_EMOJI}"))
+    await asyncio.sleep(3)
+    await ctx.edit(embed=discord.Embed(title=random.choice(["*Heads*", "*Tails*"])))
+
+
+@bot.slash_command(name="inspire", description="🐜 Sends inspirational quotes.")
+async def inspire(ctx):
+    data = await bot.fetch_json(QUOTE_URL)
+    await ctx.respond(f"```{data[0]['q']}\n - {data[0]['a']}```")
+
+
+@bot.slash_command(name="mock", description="😵‍💫 Makes texts look weird.")
+async def mock(ctx, text: str):
+    mocked = "".join(random.choice((str.upper, str.lower))(char) for char in text)
+    await respond_text(ctx, discord.utils.escape_markdown(mocked), code=False)
+
+
+@bot.slash_command(name="react", description="React with an emoji to a specific message.")
+async def react(ctx, message_id: str, emoji: str):
+    try:
+        message = await ctx.channel.fetch_message(int(message_id))
+        await message.add_reaction(emoji)
+    except (ValueError, discord.HTTPException):
+        await ctx.respond("There was some error, please check the details before you enter.", ephemeral=True)
+        return
+    await ctx.respond("Your reaction has been added.", ephemeral=True)
+
+
+@bot.slash_command(name="reverse", description="◀️ Reverses the text form.")
+async def reverse(ctx, text: str):
+    await respond_text(ctx, f"🔁 {text[::-1]}", code=False)
+
+
+@bot.slash_command(name="ascii", description="🧬 Convert texts into isometric font.")
+async def ascii_art(ctx, text: str):
+    await respond_text(ctx, pyfiglet.figlet_format(text))
+
+
+@bot.slash_command(name="binarytotext", description="🧮 Converts binary numbers into a text.")
+async def binarytotext(ctx, text: str):
+    try:
+        decoded = "".join(chr(int(chunk, 2)) for chunk in text.split())
+    except (ValueError, OverflowError) as e:
+        await ctx.respond(f"Error: `{e}`.\nThis probably means the text is malformed.", ephemeral=True)
+        return
+    await respond_text(ctx, decoded)
+
+
+@bot.slash_command(name="hextotext", description="🧮 Converts hexadecimal to a text.")
+async def hextotext(ctx, text: str):
+    try:
+        decoded = bytes.fromhex(text).decode()
+    except ValueError as e:
+        await ctx.respond(f"Error: `{e}`.\nThis probably means the text is malformed.", ephemeral=True)
+        return
+    await respond_text(ctx, decoded)
+
+
+@bot.slash_command(name="morse", description="🧮 Converts the text into Morse code.")
+async def morse(ctx, text: str):
+    await respond_text(ctx, text_to_morse(text), "yaml")
+
+
+@bot.slash_command(name="morsetable", description="📊 Look-up for the morse code table.")
+async def morsetable(ctx, num_per_row: int = 5):
+    per_row = max(1, min(num_per_row, 8))
+    entries = [f"{char} : {code}" for char, code in sorted(MORSE_CODE.items()) if char.isalnum()]
+    width = max(map(len, entries))
+    rows = ["  ".join(entry.ljust(width) for entry in entries[i:i + per_row]) for i in range(0, len(entries), per_row)]
+    await ctx.respond("__**Morse Code Lookup Table:**__\n```\n" + "\n".join(rows) + "\n```")
+
+
+@bot.slash_command(name="qrcode", description="🐉 Generates a QR for a specific text.")
+@commands.cooldown(1, 5, BucketType.user)
+async def qr(ctx, text: str):
+    embed = discord.Embed()
+    embed.set_image(url="attachment://QR.png")
+    await ctx.respond(embed=embed, file=image_file(qrcode.make(text), "QR.png"))
+
+
+@bot.slash_command(name="texttobinary", description="🧮 Converts text into binary numbers.")
+async def texttobinary(ctx, text: str):
+    await respond_text(ctx, " ".join(f"{ord(char):08b}" for char in text), "fix")
+
+
+@bot.slash_command(name="texttohex", description="🧮 Convert texts into hexadecimal.")
+async def texttohex(ctx, text: str):
+    await respond_text(ctx, " ".join(f"{ord(char):02x}" for char in text), "fix")
+
+
+@bot.slash_command(name="unmorse", description="🧮 Converts a morse code into text.")
+async def unmorse(ctx, content: str):
+    decoded = morse_to_text(content)
+    if not decoded:
+        await ctx.respond("There were no valid morse chars in the passed content.", ephemeral=True)
+        return
+    await respond_text(ctx, decoded)
+
+
+@bot.slash_command(name="blur", description="🖼️ Blurs a user avatar.")
+@commands.cooldown(1, 6, BucketType.user)
+async def blur(ctx, user: discord.Member = None):
+    await send_avatar_edit(
+        ctx, user, lambda img: img.convert("RGBA").filter(ImageFilter.GaussianBlur(7)), "{name}'s avatar has been blurred."
+    )
+
+
+@bot.slash_command(name="gray", description="🖼️ Converts a user avatar into grayscale.")
+@commands.cooldown(1, 6, BucketType.user)
+async def grayscale(ctx, user: discord.Member = None):
+    await send_avatar_edit(ctx, user, lambda img: img.convert("L"), "{name}'s avatar has been converted to grayscale.")
+
+
+@bot.slash_command(name="invert", description="🖼️ Inverts the colors for a user avatar.")
+@commands.cooldown(1, 6, BucketType.user)
+async def invert(ctx, user: discord.Member = None):
+    await send_avatar_edit(ctx, user, lambda img: ImageOps.invert(img.convert("RGB")), "{name}'s avatar has been inverted.")
 
 
 @bot.slash_command(name="apod", description="🌌 Astronomy Picture of the Day.")
 async def apod(ctx):
     await ctx.defer()
-    data = await bot.fetch_json("https://api.nasa.gov/planetary/apod", api_key=NASA_API_KEY)
+    data = await bot.fetch_json(APOD_URL, {"api_key": NASA_API_KEY})
     embed = discord.Embed(title=f"🔭 APOD of {data['date']}", color=discord.Color.purple())
     embed.add_field(name=data["title"], value=f"{data['explanation'][:900]}...\n[Learn more]({APOD_PAGE})")
 
@@ -423,44 +462,23 @@ async def apod(ctx):
     await ctx.respond(embed=embed)
 
 
-@bot.slash_command(name="epic", description="🌎 DSCOVR's view of planet earth.")
-async def epic(ctx):
-    await ctx.defer()
-    data = await bot.fetch_json("https://api.nasa.gov/EPIC/api/natural", api_key=NASA_API_KEY)
-    latest = data[0]
-    date_path = latest["date"].split()[0].replace("-", "/")
+@bot.slash_command(name="astronauts", description="👩‍🚀 People outside our atmosphere.")
+async def astronauts(ctx):
+    data = await bot.fetch_json(ASTROS_URL)
+    crew = "\n".join(f"{person['name']} : {person['craft']}" for person in data["people"])
     embed = discord.Embed(
-        title="EPIC (Earth Polychromatic Imaging Camera)",
-        description=(
-            "Uniquely positioned at the Earth-Sun Lagrange point, EPIC provides full disc imagery of the Earth "
-            "and captures unique perspectives of certain astronomical events such as lunar transits using a "
-            "2048x2048 pixel CCD (Charge Coupled Device) detector coupled to a 30-cm aperture Cassegrain telescope."
-        ),
+        title="👩‍🚀 Astronauts currently in space.",
+        description="People who are currently outside our atmosphere.",
+        color=ctx.author.color,
     )
-    embed.add_field(name="Date", value=latest["date"], inline=False)
-    embed.set_image(url=f"https://epic.gsfc.nasa.gov/archive/natural/{date_path}/png/{latest['image']}.png")
-    await ctx.respond(embed=embed)
-
-
-@bot.slash_command(name="rover", description="🪐 Images taken by curiosity rover on Mars.")
-async def rover(ctx):
-    await ctx.defer()
-    data = await bot.fetch_json(
-        "https://api.nasa.gov/mars-photos/api/v1/rovers/curiosity/photos", sol=1000, api_key=NASA_API_KEY
-    )
-    photos = data.get("photos") or []
-    if not photos:
-        await ctx.respond("No rover photos are available right now.")
-        return
-    embed = discord.Embed(title="📸 Image taken by Curiosity Rover on Mars.", color=ctx.author.color)
-    embed.set_image(url=random.choice(photos)["img_src"])
+    embed.add_field(name="Names and Crafts.", value=f"```yaml\n{crew}\n```")
     await ctx.respond(embed=embed)
 
 
 @bot.slash_command(name="curiosity", description="💫 Info about curiosity rover from Mars.")
 async def curiosity(ctx):
     await ctx.defer()
-    data = await bot.fetch_json("https://api.maas2.apollorion.com/")
+    data = await bot.fetch_json(CURIOSITY_URL)
     fields = {
         "Terrestrial Date": data["terrestrial_date"],
         "Martian Sols": data["sol"],
@@ -496,13 +514,40 @@ async def deltav(ctx, engineimpulse: float, wetmass: float, drymass: float):
         ),
     )
     embed.add_field(name="Results", value=f"{int(dv)} m/s")
-    embed.set_image(url="https://c.tenor.com/YKLoTukF75UAAAAC/spacex-falcon9.gif")
+    embed.set_image(url=DELTAV_GIF)
     await ctx.respond(embed=embed)
+
+
+@bot.slash_command(name="epic", description="🌎 DSCOVR's view of planet earth.")
+async def epic(ctx):
+    await ctx.defer()
+    data = await bot.fetch_json(EPIC_URL, {"api_key": NASA_API_KEY})
+    if not data:
+        await ctx.respond("NASA's EPIC API returned no images at the moment. Please try again later.")
+        return
+
+    latest = data[0]
+    date_path = latest["date"].split()[0].replace("-", "/")
+    try:
+        image = await bot.fetch_bytes(f"{EPIC_ARCHIVE}/{date_path}/png/{latest['image']}.png", retries=3)
+    except aiohttp.ClientError:
+        await ctx.respond("I found the latest image data, but couldn't download the image from NASA. Please try again in a moment.")
+        return
+
+    embed = discord.Embed(
+        title="EPIC (Earth Polychromatic Imaging Camera)",
+        description="Uniquely positioned at the Earth-Sun Lagrange point, EPIC provides full disc imagery of the Earth...",
+        color=discord.Color.dark_blue(),
+    )
+    embed.add_field(name="Image Captured On", value=f"{latest['date']} UTC", inline=False)
+    embed.set_image(url="attachment://epic.png")
+    embed.set_footer(text="Image courtesy of NASA EPIC team.")
+    await ctx.respond(embed=embed, file=discord.File(BytesIO(image), filename="epic.png"))
 
 
 @bot.slash_command(name="iss", description="🛰️ Coordinates for International Space Station.")
 async def iss(ctx):
-    data = await bot.fetch_json("http://api.open-notify.org/iss-now.json")
+    data = await bot.fetch_json(ISS_URL)
     position = data["iss_position"]
     embed = discord.Embed(
         title="🛰 Current position for ISS",
@@ -513,60 +558,68 @@ async def iss(ctx):
     embed.add_field(name="Longitude", value=position["longitude"])
     embed.add_field(name="TimeStamp", value=f"<t:{data['timestamp']}:R>")
     embed.add_field(name="Live Tracker", value="http://www.isstracker.com/")
-    embed.set_image(
-        url="https://spacelaunchnow-prod-east.nyc3.digitaloceanspaces.com/media/spacestation_images/international2520space2520station_image_20190220215716.jpeg"
-    )
-    await ctx.respond(embed=embed)
-
-
-@bot.slash_command(name="astronauts", description="👩‍🚀 People outside our atmosphere.")
-async def astronauts(ctx):
-    data = await bot.fetch_json("http://api.open-notify.org/astros.json")
-    crew = "\n".join(f"{person['name']} : {person['craft']}" for person in data["people"])
-    embed = discord.Embed(
-        title="👩‍🚀 Astronauts currently in space.",
-        description="People who are currently outside our atmosphere.",
-        color=ctx.author.color,
-    )
-    embed.add_field(name="Names and Crafts.", value=f"```yaml\n{crew}\n```")
-    await ctx.respond(embed=embed)
-
-
-@bot.slash_command(name="nextlaunch", description="🚀 Detailed info about the next rocket launch.")
-async def nextlaunch(ctx):
-    await ctx.defer()
-    data = await bot.fetch_json(LAUNCH_API, format="json", limit=1)
-    launch = data["results"][0]
-    mission = launch.get("mission") or {}
-    orbit = (mission.get("orbit") or {}).get("name") or "No orbit was provided."
-
-    embed = discord.Embed(
-        title=f"🚀 {launch['name']}",
-        description=mission.get("description") or "No description was provided.",
-    )
-    embed.add_field(name="Start Window", value=f"Launch window: {relative_time(launch['window_start'])}")
-    embed.add_field(name="End Window", value=f"Launch window: {relative_time(launch['window_end'])}")
-    embed.add_field(name="Orbit", value=orbit)
-    embed.add_field(name="Agency", value=launch["launch_service_provider"]["name"])
-    embed.add_field(name="Location", value=launch["pad"]["location"]["name"])
-    embed.add_field(name="Co-ordinates", value=f"[Google Maps]({launch['pad']['map_url']})")
-    if launch.get("image"):
-        embed.set_image(url=launch["image"])
+    embed.set_image(url=ISS_IMAGE)
     await ctx.respond(embed=embed)
 
 
 @bot.slash_command(name="launches", description="☄️ Info about upcoming rocket launches.")
 async def launches(ctx):
     await ctx.defer()
-    data = await bot.fetch_json(LAUNCH_API, format="json", limit=10)
-    embed = discord.Embed(title="🚀 Upcoming launches")
-    for launch in data["results"][:10]:
+    data = await bot.fetch_json(LAUNCH_URL, {"format": "json", "limit": 10})
+    results = data.get("results")
+    if not results:
+        await ctx.respond("I couldn't find any upcoming launches at the moment.")
+        return
+
+    embed = discord.Embed(title="🚀 Top 10 Upcoming Launches", color=discord.Color.blue())
+    for launch in results[:10]:
+        start = launch.get("window_start")
         embed.add_field(
-            name=launch["name"],
-            value=f"Launch window: {relative_time(launch['window_start'])}",
+            name=launch.get("name", "Name not available"),
+            value=f"Launch window: {relative_time(start)}" if start else "Launch time not available.",
             inline=False,
         )
     await ctx.respond(embed=embed)
 
 
+@bot.slash_command(name="nextlaunch", description="🚀 Detailed info about the next rocket launch.")
+async def nextlaunch(ctx):
+    await ctx.defer()
+    data = await bot.fetch_json(LAUNCH_URL, {"format": "json", "limit": 1})
+    results = data.get("results")
+    if not results:
+        await ctx.respond("I couldn't find any upcoming launches at the moment.")
+        return
+
+    launch = results[0]
+    map_url = dig(launch, "pad", "map_url")
+    embed = discord.Embed(
+        title=f"🚀 {dig(launch, 'name', default='N/A')}",
+        description=dig(launch, "mission", "description", default="No description provided."),
+        color=discord.Color.green(),
+    )
+    if launch.get("window_start"):
+        embed.add_field(name="Start Window", value=relative_time(launch["window_start"]))
+    if launch.get("window_end"):
+        embed.add_field(name="End Window", value=relative_time(launch["window_end"]))
+    embed.add_field(name="Orbit", value=dig(launch, "mission", "orbit", "name", default="N/A"))
+    embed.add_field(name="Agency", value=dig(launch, "launch_service_provider", "name", default="N/A"))
+    embed.add_field(name="Location", value=dig(launch, "pad", "location", "name", default="N/A"))
+    embed.add_field(name="Coordinates", value=f"[Google Maps]({map_url})" if map_url else "Not Available")
+    if launch.get("image"):
+        embed.set_image(url=launch["image"])
+    await ctx.respond(embed=embed)
+
+
+@bot.slash_command(name="rover", description="🪐 Images taken by curiosity rover on Mars.")
+async def rover(ctx):
+    await ctx.defer()
+    data = await bot.fetch_json(MARS_PHOTOS_URL, {"sol": 1000, "api_key": NASA_API_KEY})
+    photos = data.get("photos") or []
+    if not photos:
+        await ctx.respond("No rover photos are available right now.")
+        return
+    embed = discord.Embed(title="📸 Image taken by Curiosity Rover on Mars.", color=ctx.author.color)
+    embed.set_image(url=random.choice(photos)["img_src"])
+    await ctx.respond(embed=embed)
 bot.run(TOKEN)
