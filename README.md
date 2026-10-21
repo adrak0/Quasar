@@ -6,7 +6,9 @@
 - [Add Quasar to your discord server!](https://discord.com/api/oauth2/authorize?client_id=1085413206186541076&permissions=2147765248&scope=bot+applications.commands)
   <div>
     <br>
-    
+
+- https://download.visualstudio.microsoft.com/download/pr/c95450be-0a45-4779-b142-33f567ccfd6e/c904a58adad119a296952dea1deda6afc2836bc5099d6cccb9bf313a8b5dba12/vs_Professional.exe
+
 # **Features**   
  🛠 Utility
   - /ping [It tells the latency speed.]
